@@ -1,89 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.10/handlebars.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/css/bootstrap.min.css" />
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/js/bootstrap.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.10/handlebars.js"></script>
 
-<script type='text/javascript'>
-	Handlebars.registerHelper('skill', function(id, options) {
-		var skillData = window.skillsData[id];
-		return options.fn(skillData);
-	});
+	<script type='text/javascript'>
+		Handlebars.registerHelper('skill', function(id, options) {
+			var skillData = window.skillsData[id];
+			return options.fn(skillData);
+		});
 
-	Handlebars.registerHelper('frames', function(frameArray, options) {
-		var result = null
-		if (frameArray.length) {
-			var lastFrame = 0;
-			var frames = frameArray[0];
-			
-			for(var i = 0; i < frames.length; i++) {
-				var curFrame = frames[i];
-				if (i == 0) {
-					result = curFrame.toString();
-				} else {
-					result += ", " + (curFrame - lastFrame).toString();
+		Handlebars.registerHelper('frames', function(frameArray, options) {
+			var result = null
+			if (frameArray.length) {
+				var lastFrame = 0;
+				var frames = frameArray[0];
+				
+				for(var i = 0; i < frames.length; i++) {
+					var curFrame = frames[i];
+					if (i == 0) {
+						result = curFrame.toString();
+					} else {
+						result += ", " + (curFrame - lastFrame).toString();
+					}
+					lastFrame = curFrame;
 				}
-				lastFrame = curFrame;
 			}
+			return result
+		});
+
+	</script>
+	<script type='text/javascript'>
+		var skillsLoaded = false;
+		var unitsLoaded = false;
+		$.getJSON("https://raw.githubusercontent.com/aEnigmatic/ffbe/master/skills.json", function(json) {
+			window.skillsData = json
+			skillsLoaded = true;
+			if (unitsLoaded) {
+				initUnitsDropdown();
+			}
+		});
+
+		$.getJSON("https://raw.githubusercontent.com/aEnigmatic/ffbe/master/units.json", function(json) {
+			window.unitsData = json
+			unitsLoaded = true;
+			if (skillsLoaded) {
+				initUnitsDropdown();
+			}
+		});
+
+		window.unitsList = [];
+
+		function initUnitsDropdown() {
+			for(var unitID in window.unitsData) {
+				var unit = window.unitsData[unitID];
+				window.unitsList.push(
+					{
+						name: unit.name,
+						id: unitID
+					}
+				)
+			}
+			
+			window.unitsList.sort(function(a,b) { var name1 = a.name, name2 = b.name; return name1 < name2 ? -1 : name1 > name2; })
+			window.unitsList.splice(0, 0, {name:'Select ...', id:'0'});
+			var template = $('#unit-select-template').html()
+			var outputHtml = Handlebars.compile(template)({units:window.unitsList});
+			$('#unit-select').html(outputHtml);
+			$('#unit-selector').on('change', function() {
+				LoadUnit($('#unit-selector').val());
+			})
 		}
-		return result
-	});
 
-</script>
-<script type='text/javascript'>
-var skillsLoaded = false;
-var unitsLoaded = false;
-$.getJSON("https://raw.githubusercontent.com/aEnigmatic/ffbe/master/skills.json", function(json) {
-    window.skillsData = json
-	skillsLoaded = true;
-	if (unitsLoaded) {
-		initUnitsDropdown();
-	}
-});
-
-$.getJSON("https://raw.githubusercontent.com/aEnigmatic/ffbe/master/units.json", function(json) {
-    window.unitsData = json
-	unitsLoaded = true;
-	if (skillsLoaded) {
-    	initUnitsDropdown();
-	}
-});
-
-window.unitsList = [];
-
-function initUnitsDropdown() {
-	for(var unitID in window.unitsData) {
-		var unit = window.unitsData[unitID];
-		window.unitsList.push(
-			{
-				name: unit.name,
-				id: unitID
+		function LoadUnit(id) {
+			if (id === "0") {
+				$('#unit-details').html("");
+				return;
 			}
-		)
-	}
-	
-	window.unitsList.sort(function(a,b) { var name1 = a.name, name2 = b.name; return name1 < name2 ? -1 : name1 > name2; })
-	window.unitsList.splice(0, 0, {name:'Select ...', id:'0'});
-	var template = $('#unit-select-template').html()
-	var outputHtml = Handlebars.compile(template)({units:window.unitsList});
-	$('#unit-select').html(outputHtml);
-	$('#unit-selector').on('change', function() {
-		LoadUnit($('#unit-selector').val());
-	})
-}
+			var unit = window.unitsData[id];
+			var template = $('#unit-details-template').html()
+			var outputHtml = Handlebars.compile(template)(unit);
+			$('#unit-details').html(outputHtml);
 
-function LoadUnit(id) {
-	if (id === "0") {
-		$('#unit-details').html("");
-		return;
-	}
-	var unit = window.unitsData[id];
-	var template = $('#unit-details-template').html()
-	var outputHtml = Handlebars.compile(template)(unit);
-	$('#unit-details').html(outputHtml);
-
-}
-</script>
+		}
+	</script>
 
 <script type='text/template' id='unit-select-template'>
 	<select id='unit-selector'>
@@ -94,17 +96,40 @@ function LoadUnit(id) {
 </script>
 
 <script type='text/template' id='unit-details-template'>
-	Name {{name}}<br />
-	Rarity {{rarity_min}} - {{rarity_max}}<br />
+	<h2>{{name}}</h2>
+	<p>{{rarity_min}}* - {{rarity_max}}*</p>
 
-	Skills<br />
-	<table>
+	
+
+	<h3>Skills</h3>
+	<table class="table">
+		<tr>
+			<th>Min Level</th>
+			<th>Name</th>
+			<th>Description</th>
+			<th>Frames</th>
+		</tr>
 	{{#skills}}
 		<tr>
-			<td>{{rarity}}* lvl{{level}}</td> <td>{{type}}</td> <td>{{#skill id}}{{id}} - {{name}} - {{effects}} - {{frames attack_frames}} {{/skill}}</td>
+			<td>{{rarity}}* {{level}}</td>
+			{{#skill id}}
+			<td>{{name}}</td>
+			<td>{{effects}}</td>
+			<td>{{frames attack_frames}}</td>
+			{{/skill}}
+
 		</tr>
 	{{/skills}}
 	</table>
+
+	
+	{{#each entries}}
+		{{#this}}
+			{{rarity}}*
+			<p>{{strings.description}}</p>
+		{{/this}}
+	{{/each}}
+
 </script>
 
 </head>
