@@ -2,9 +2,10 @@
 <html>
 <head>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/css/bootstrap.min.css" />
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/js/bootstrap.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.10/handlebars.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/js/bootstrap.min.js"></script>
 
 	<script type='text/javascript'>
 		Handlebars.registerHelper('skill', function(id, options) {
@@ -12,9 +13,13 @@
 			return options.fn(skillData);
 		});
 
+		Handlebars.registerHelper('limit', function(id, options) {
+			var skillData = window.lbData[id];
+			return options.fn(skillData);
+		});
 		Handlebars.registerHelper('frames', function(frameArray, options) {
 			var result = null
-			if (frameArray.length) {
+			if (frameArray && frameArray.length) {
 				var lastFrame = 0;
 				var frames = frameArray[0];
 				
@@ -35,10 +40,11 @@
 	<script type='text/javascript'>
 		var skillsLoaded = false;
 		var unitsLoaded = false;
+		var lbLoaded = false;
 		$.getJSON("https://raw.githubusercontent.com/aEnigmatic/ffbe/master/skills.json", function(json) {
 			window.skillsData = json
 			skillsLoaded = true;
-			if (unitsLoaded) {
+			if (unitsLoaded && lbLoaded) {
 				initUnitsDropdown();
 			}
 		});
@@ -46,7 +52,15 @@
 		$.getJSON("https://raw.githubusercontent.com/aEnigmatic/ffbe/master/units.json", function(json) {
 			window.unitsData = json
 			unitsLoaded = true;
-			if (skillsLoaded) {
+			if (skillsLoaded && lbLoaded) {
+				initUnitsDropdown();
+			}
+		});
+
+		$.getJSON("https://raw.githubusercontent.com/aEnigmatic/ffbe/master/limitbursts.json", function(json) {
+			window.lbData = json
+			lbLoaded = true;
+			if (skillsLoaded && unitsLoaded) {
 				initUnitsDropdown();
 			}
 		});
@@ -122,14 +136,34 @@
 	{{/skills}}
 	</table>
 
-	
-	{{#each entries}}
-		{{#this}}
-			{{rarity}}*
-			<p>{{strings.description}}</p>
-		{{/this}}
-	{{/each}}
+	<h4>Limit</h4>
 
+			<table class=table>	
+				<tr>
+					<th>Name</th>
+					<th>Desc</th>
+					<th>Effects</th>
+					<th>Frames</th>
+				</tr>	{{#each entries}}
+		{{#this}}
+				<tr>
+					
+					<td>{{rarity}}* {{#limit limitburst_id}}{{name}}</td>
+					<td>{{strings.desc.[0]}}</td>
+					<td>{{min_level.effects}}<br>{{max_level.effects}}</td>
+					<td>{{frames attack_frames}}</td>
+					{{/limit}}
+				</tr>	{{/this}}
+	{{/each}}
+			</table>
+	
+
+	{{#each entries}}
+	{{#this}}
+		{{rarity}}*
+		<p>{{strings.description}}</p>
+		{{/this}}
+		{{/each}}
 </script>
 
 </head>
